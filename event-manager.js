@@ -70,8 +70,48 @@
             var item = link.closest(".item");
             if (!item) return;
 
-            var name = item.querySelector(".name")?.innerText;
-            console.log("PRODUCT CLICK:", name);
+            if (typeof coveoua !== "function") return;
+
+            const name = item.querySelector(".name")?.innerText?.trim() || "";
+            const sku = item.querySelector(".sku")?.innerText?.replace("SKU ", "").trim() || "";
+            const documentUrl = link.href;
+
+            // calcular posición real en lista
+            const allItems = Array.from(document.querySelectorAll(".product-list .item"));
+            const position = allItems.indexOf(item) + 1;
+
+            console.log("CLICK ANALYTICS PAYLOAD", {
+                name,
+                sku,
+                position,
+                searchQueryUid
+            });
+
+            coveoua('send', 'click', {
+                actionCause: 'documentOpen',
+
+                documentPosition: position,
+                documentTitle: name,
+                documentUrl: documentUrl,
+
+                searchQueryUid: searchQueryUid,
+
+                sourceName: 'Products',
+                language: language,
+
+                originLevel1: searchHub,
+                originLevel2: 'Products',
+                originLevel3: window.location.href,
+
+                anonymous: isAnonymous,
+
+                customData: {
+                    contentIDKey: 'sku',
+                    contentIDValue: sku
+                }
+            });
+
+
 
         }, true);
 
