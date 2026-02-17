@@ -258,36 +258,82 @@
 
         console.log("Initializing Product Detail Analytics");
 
-        document.addEventListener("click", function (e) {
-
-            const btn = e.target.closest(".btn-add-cart-large");
-            if (!btn) return;
-
-            const name = document.querySelector(".product-details .title")?.innerText?.trim() || "";
-            const sku = document.querySelector(".sku span")?.innerText?.trim() || "";
-
-            const priceElement = document.querySelector("[data-bind*='YourPrice']");
-            const price = priceElement
-                ? parseFloat(priceElement.innerText.replace(",", "").trim())
-                : 0;
-
-            const qtyInput = document.querySelector("input.increment");
-            const quantity = qtyInput ? parseInt(qtyInput.value, 10) || 1 : 1;
-
-            coveoua('ec:addProduct', {
-                id: sku,
-                name: name,
-                category: "Products",
-                price: price,
-                quantity: quantity
-            });
-
-            coveoua('ec:setAction', 'add');
-            coveoua('send', 'event');
-
-            console.log("Product detail add to cart sent");
-
-        }, true);
+        sendProductViewEvent();
+        initProductAddToCart();
     }
+
+    function sendProductViewEvent() {
+
+        const name = document.querySelector(".product-details .title, .name")?.innerText?.trim() || "";
+        const sku = document.querySelector(".sku span, .sku")?.innerText?.replace("SKU ", "").trim() || "";
+
+        const priceElement = document.querySelector("[data-bind*='YourPrice']");
+        const price = priceElement
+            ? parseFloat(priceElement.innerText.replace(",", "").trim())
+            : 0;
+
+        if (!sku) return;
+
+        console.log("PRODUCT VIEW EVENT", {
+            name,
+            sku,
+            price
+        });
+
+        coveoua('set', 'custom', {
+            context_website: searchHub,
+            originLevel1: searchHub,
+            context_language: language
+        });
+
+        coveoua('ec:addProduct', {
+            id: sku,
+            name: name,
+            category: "Products",
+            price: price
+        });
+
+        coveoua('ec:setAction', 'detail');
+        coveoua('send', 'event');
+
+    }
+
+    function sendProductViewEvent() {
+
+        const name = document.querySelector(".product-details .title, .name")?.innerText?.trim() || "";
+        const sku = document.querySelector(".sku span, .sku")?.innerText?.replace("SKU ", "").trim() || "";
+
+        const priceElement = document.querySelector("[data-bind*='YourPrice']");
+        const price = priceElement
+            ? parseFloat(priceElement.innerText.replace(",", "").trim())
+            : 0;
+
+        if (!sku) return;
+
+        console.log("PRODUCT VIEW EVENT", {
+            name,
+            sku,
+            price
+        });
+
+        coveoua('set', 'custom', {
+            context_website: searchHub,
+            originLevel1: searchHub,
+            context_language: language
+        });
+
+        coveoua('ec:addProduct', {
+            id: sku,
+            name: name,
+            category: "Products",
+            price: price
+        });
+
+        coveoua('ec:setAction', 'detail');
+        coveoua('send', 'event');
+
+    }
+
+
 
 })();
