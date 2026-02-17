@@ -7,11 +7,14 @@
         // ---- CLICK LISTENER ----
         document.addEventListener("click", function(e){
 
-            var product = e.target.closest(".item");
-            if (!product) return;
+            var link = e.target.closest("a.product-info");
+            if (!link) return;
 
-            var name = product.querySelector(".name")?.innerText;
-            console.log("CAPTURE CLICK:", name);
+            var item = link.closest(".item");
+            if (!item) return;
+
+            var name = item.querySelector(".name")?.innerText;
+            console.log("PRODUCT CLICK:", name);
 
         }, true);
 
@@ -45,43 +48,43 @@
         // ---- OBSERVER ----
         let searchSent = false;
 
-        const target = document.querySelector("#subcategory");
+        const totalSpan = document.querySelector(
+            ".title-arrow span[data-bind*='totalProducts']"
+        );
 
-        if (!target) {
-            console.log("No subcategory found");
+        if (!totalSpan) {
+            console.log("totalProducts span not found");
             return;
         }
 
+        let lastValue = null;
+
         const observer = new MutationObserver(function(){
 
-            const items = document.querySelectorAll("#subcategory .item");
+            const total = parseInt(totalSpan.textContent.trim(), 10);
 
-            if (items.length > 0 && !searchSent) {
+            if (!total || total === lastValue) return;
 
-                searchSent = true;
+            lastValue = total;
+            searchSent = true;
 
-                console.log("SEARCH RESULTS DETECTED:", items.length);
+            console.log("SEARCH TOTAL DETECTED:", total);
 
-                if (typeof coveoua === "function") {
-
-                    coveoua('send', 'event', 'Search', 'SearchPageLoad', {
-                        totalResults: items.length,
-                        originLevel1: "ds_en_us_myhl_search_qa01",
-                        originLevel2: "search",
-                        originLevel3: window.location.href
-                    });
-
-                } else {
-                    console.log("coveoua not ready");
-                }
+            if (typeof coveoua === "function") {
+                coveoua('send', 'event', 'Search', 'SearchPageLoad', {
+                    totalResults: total,
+                    originLevel1: "ds_en_us_myhl_search_qa01",
+                    originLevel2: "search",
+                    originLevel3: window.location.href
+                });
             }
 
         });
 
-        observer.observe(target, {
-            childList: true,
-            subtree: true
+        observer.observe(totalSpan, {
+            childList: true
         });
+
 
     });
 
