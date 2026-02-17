@@ -8,33 +8,49 @@
         var name = product.querySelector(".name")?.innerText;
         console.log("CAPTURE CLICK:", name);
 
-    }, true); // 🔥 IMPORTANTE: true = capture phase
+    }, true);
 
 
-    function waitForProducts(){
+    function hookDataBound(){
 
-        var items = document.querySelectorAll("#subcategory .item");
+        var root = document.getElementById("subcategory");
+        if (!root || !window.ko) {
+            setTimeout(hookDataBound, 200);
+            return;
+        }
 
-        if (items.length > 0) {
+        var vm = ko.dataFor(root);
+        if (!vm || !vm.onDataBound) {
+            setTimeout(hookDataBound, 200);
+            return;
+        }
+
+        var original = vm.onDataBound;
+
+        vm.onDataBound = function(){
+
+            original.apply(this, arguments);
 
             if (typeof coveoua === "function") {
 
-                console.log("SEARCH RESULTS READY:", items.length);
+                var total = vm.totalProducts?.();
+
+                console.log("SEARCH READY VIA DATABOUND", total);
 
                 coveoua('send', 'event', 'Search', 'SearchPageLoad', {
-                    totalResults: items.length,
+                    totalResults: total,
                     originLevel1: "ds_en_us_myhl_search_qa01",
                     originLevel2: "search",
                     originLevel3: window.location.href
                 });
 
             }
+        };
 
-        } else {
-            setTimeout(waitForProducts, 200);
-        }
+        console.log("Hooked onDataBound");
+
     }
 
-    waitForProducts();
+    hookDataBound();
 
 })();
