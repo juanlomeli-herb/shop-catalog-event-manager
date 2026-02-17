@@ -1,28 +1,13 @@
 (function(){
 
-    var root = document.querySelector("#subcategory");
-    if (!root) return;
+    document.addEventListener("click", function(e){
 
-    root.addEventListener("click", function(e){
+        var product = e.target.closest(".item");
+        if (!product) return;
 
-        // Detectar click en producto
-        var productLink = e.target.closest("a.product-info");
-        if (productLink) {
-            var item = productLink.closest(".item");
-            var name = item?.querySelector(".name")?.innerText.trim();
-            console.log("PRODUCT CLICK:", name);
-            return;
-        }
+        var name = product.querySelector(".name")?.innerText;
+        console.log("CAPTURE CLICK:", name);
 
-        // Detectar add to cart
-        var addBtn = e.target.closest(".btn-add-cart");
-        if (addBtn) {
-            var item = addBtn.closest(".item");
-            var name = item?.querySelector(".name")?.innerText.trim();
-            console.log("ADD TO CART CLICK:", name);
-            return;
-        }
-
-    });
+    }, true); // 🔥 IMPORTANTE: true = capture phase
 
 })();
