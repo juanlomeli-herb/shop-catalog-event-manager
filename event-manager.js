@@ -76,7 +76,6 @@
             const sku = item.querySelector(".sku")?.innerText?.replace("SKU ", "").trim() || "";
             const documentUrl = link.href;
 
-            // calcular posición real en lista
             const allItems = Array.from(document.querySelectorAll(".product-list .item"));
             const position = allItems.indexOf(item) + 1;
 
@@ -124,20 +123,47 @@
             var item = btn.closest(".item");
             if (!item) return;
 
-            var name = item.querySelector(".name")?.innerText;
-            var sku = item.querySelector(".sku")?.innerText?.replace("SKU ", "");
+            if (typeof coveoua !== "function") return;
 
-            console.log("ADD TO CART CLICK:", name, sku);
+            const name = item.querySelector(".name")?.innerText?.trim() || "";
+            const sku = item.querySelector(".sku")?.innerText?.replace("SKU ", "").trim() || "";
 
-            if (typeof coveoua === "function") {
-                coveoua('send', 'event', 'Search', 'AddToCart', {
-                    productName: name,
-                    productSku: sku,
-                    originLevel1: "ds_en_us_myhl_search_qa01",
-                    originLevel2: "search",
-                    originLevel3: window.location.href
-                });
-            }
+            // Precio visible
+            const priceText = item.querySelector(".pricing .inline-block")?.innerText?.replace("$", "").trim() || "0";
+            const price = parseFloat(priceText) || 0;
+
+            // Cantidad seleccionada
+            const qtyInput = item.querySelector("input.increment");
+            const quantity = qtyInput ? parseInt(qtyInput.value, 10) || 1 : 1;
+
+            console.log("ADD TO CART ANALYTICS", {
+                name,
+                sku,
+                price,
+                quantity,
+                searchQueryUid
+            });
+
+            // ---- Context ----
+            coveoua('set', 'custom', {
+                context_website: searchHub,
+                context_language: language
+            });
+
+            coveoua('set', 'currencyCode', 'USD');
+
+            // ---- Enhanced Ecommerce ----
+            coveoua('ec:addProduct', {
+                id: sku,
+                name: name,
+                category: "products",
+                price: price,
+                quantity: quantity
+            });
+
+            coveoua('ec:setAction', 'add', {
+                list: 'Products'
+            });
 
         }, true);
 
