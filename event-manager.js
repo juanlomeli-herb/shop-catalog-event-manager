@@ -298,41 +298,45 @@
 
     }
 
-    function sendProductViewEvent() {
+    function initProductAddToCart() {
 
-        const name = document.querySelector(".product-details .title, .name")?.innerText?.trim() || "";
-        const sku = document.querySelector(".sku span, .sku")?.innerText?.replace("SKU ", "").trim() || "";
+        document.addEventListener("click", function (e) {
 
-        const priceElement = document.querySelector("[data-bind*='YourPrice']");
-        const price = priceElement
-            ? parseFloat(priceElement.innerText.replace(",", "").trim())
-            : 0;
+            const btn = e.target.closest(".btn-add-cart-large, .btn-add-cart");
+            if (!btn) return;
 
-        if (!sku) return;
+            const name = document.querySelector(".product-details .title, .name")?.innerText?.trim() || "";
+            const sku = document.querySelector(".sku span, .sku")?.innerText?.replace("SKU ", "").trim() || "";
 
-        console.log("PRODUCT VIEW EVENT", {
-            name,
-            sku,
-            price
-        });
+            const priceElement = document.querySelector("[data-bind*='YourPrice']");
+            const price = priceElement
+                ? parseFloat(priceElement.innerText.replace(",", "").trim())
+                : 0;
 
-        coveoua('set', 'custom', {
-            context_website: searchHub,
-            originLevel1: searchHub,
-            context_language: language
-        });
+            const qtyInput = document.querySelector("input.increment");
+            const quantity = qtyInput ? parseInt(qtyInput.value, 10) || 1 : 1;
 
-        coveoua('ec:addProduct', {
-            id: sku,
-            name: name,
-            category: "Products",
-            price: price
-        });
+            console.log("PRODUCT DETAIL ADD TO CART", {
+                name,
+                sku,
+                price,
+                quantity
+            });
 
-        coveoua('ec:setAction', 'detail');
-        coveoua('send', 'event');
+            coveoua('ec:addProduct', {
+                id: sku,
+                name: name,
+                category: "Products",
+                price: price,
+                quantity: quantity
+            });
 
+            coveoua('ec:setAction', 'add');
+            coveoua('send', 'event');
+
+        }, true);
     }
+
 
 
 
