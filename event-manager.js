@@ -154,8 +154,10 @@
             const sku = item.querySelector(".sku")?.innerText?.replace("SKU ", "").trim() || "";
 
             // Precio visible
-            const priceText = item.querySelector(".pricing .inline-block")?.innerText?.replace("$", "").trim() || "0";
-            const price = parseFloat(priceText) || 0;
+            const priceElement = item.querySelector("[data-bind*='YourPrice']");
+            const price = priceElement
+                ? parseFloat(priceElement.innerText.replace(",", "").trim())
+                : 0;
 
             // Cantidad seleccionada
             const qtyInput = item.querySelector("input.increment");
