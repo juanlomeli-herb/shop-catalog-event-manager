@@ -11,46 +11,40 @@
     }, true);
 
 
-    function hookDataBound(){
+    let searchSent = false;
 
-        var root = document.getElementById("subcategory");
-        if (!root || !window.ko) {
-            setTimeout(hookDataBound, 200);
-            return;
-        }
+    const target = document.querySelector("#subcategory");
 
-        var vm = ko.dataFor(root);
-        if (!vm || !vm.onDataBound) {
-            setTimeout(hookDataBound, 200);
-            return;
-        }
+    if (!target) return;
 
-        var original = vm.onDataBound;
+    const observer = new MutationObserver(function(mutations){
 
-        vm.onDataBound = function(){
+        const items = document.querySelectorAll("#subcategory .item");
 
-            original.apply(this, arguments);
+        if (items.length > 0 && !searchSent) {
+
+            searchSent = true;
+
+            console.log("SEARCH RESULTS DETECTED:", items.length);
 
             if (typeof coveoua === "function") {
 
-                var total = vm.totalProducts?.();
-
-                console.log("SEARCH READY VIA DATABOUND", total);
-
                 coveoua('send', 'event', 'Search', 'SearchPageLoad', {
-                    totalResults: total,
+                    totalResults: items.length,
                     originLevel1: "ds_en_us_myhl_search_qa01",
                     originLevel2: "search",
                     originLevel3: window.location.href
                 });
 
             }
-        };
 
-        console.log("Hooked onDataBound");
+        }
 
-    }
+    });
 
-    hookDataBound();
+    observer.observe(target, {
+        childList: true,
+        subtree: true
+    });
 
 })();
