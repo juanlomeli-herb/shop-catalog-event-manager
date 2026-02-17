@@ -177,7 +177,7 @@
                 context_language: language
             });
 
-            coveoua('set', 'currencyCode', currencyCode);
+            //coveoua('set', 'currencyCode', currencyCode);
 
             coveoua('ec:addProduct', {
                 id: sku,
