@@ -122,7 +122,7 @@
 
             // ---- Anonymous ----
             function getCoveoClientId() {
-                const match = document.cookie.match(/_coveo_ua=([^;]+)/);
+                const match = document.cookie.match(/coveo=([^;]+)/);
                 return match ? match[1] : "anon_unknown";
             }
 
