@@ -161,7 +161,7 @@
                 anonymous: isAnonymous
             });
 
-            console.log("Search event sent");
+            console.log("Search event sent in search page");
 
         });
 
@@ -202,7 +202,7 @@
                 }
             });
 
-            console.log("Product click sent");
+            console.log("Product click sent in search page");
 
         }, true);
     }
@@ -244,7 +244,7 @@
             coveoua('ec:setAction', 'add');
             coveoua('send', 'event');
 
-            console.log("Add to cart sent");
+            console.log("Add to cart sent in search page");
 
         }, true);
     }
@@ -276,7 +276,7 @@
             if (!priceElement || !nameElement) return;
 
             const priceText = priceElement.innerText.trim();
-            if (!priceText) return; // aún no está pintado
+            if (!priceText) return;
 
             const name = nameElement.innerText.trim();
             const sku = document
@@ -289,9 +289,7 @@
 
             if (!sku || !price) return;
 
-            observer.disconnect(); // 🔥 importante, evitar doble envío
-
-            console.log("PRODUCT VIEW EVENT", { name, sku, price });
+            observer.disconnect();
 
             coveoua('set', 'custom', {
                 context_website: searchHub,
@@ -315,6 +313,8 @@
             childList: true,
             subtree: true
         });
+
+        console.log("Product view event sent in detail page");
     }
 
 
@@ -336,13 +336,6 @@
             const qtyInput = document.querySelector("input.increment");
             const quantity = qtyInput ? parseInt(qtyInput.value, 10) || 1 : 1;
 
-            console.log("PRODUCT DETAIL ADD TO CART", {
-                name,
-                sku,
-                price,
-                quantity
-            });
-
             coveoua('ec:addProduct', {
                 id: sku,
                 name: name,
@@ -355,6 +348,8 @@
             coveoua('send', 'event');
 
         }, true);
+
+        console.log("Add to cart sent in detail page");
     }
 
 
