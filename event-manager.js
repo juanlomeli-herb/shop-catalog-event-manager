@@ -111,8 +111,8 @@
 
             // ---- Language ----
             const pathParts = window.location.pathname.split("/");
-            const locale = pathParts[1] || "en-US";
-            const language = locale.split("-")[0].toLowerCase();
+            const locale = pathParts[1].toLowerCase().replace("-", "_");
+            const language = locale.split("_")[0];
 
             // ---- Response Time ----
             const navTiming = performance.getEntriesByType("navigation")[0];
@@ -141,7 +141,7 @@
                 isAnonymous
             });
 
-            console.log("ENVIRONMENT DETECTED:", `ds_${locale.toLowerCase()}_myhl_search_${environment}`);
+            console.log("ENVIRONMENT DETECTED:", `ds_${locale}_myhl_search_${environment}`);
 
             // ---- Context ----
             coveoua('set', 'custom', {
