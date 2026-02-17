@@ -65,9 +65,45 @@
             if (!total || total === lastValue) return;
 
             lastValue = total;
+            if (searchSent) return;
             searchSent = true;
 
+            //if (typeof coveoua !== "function") return;
+
+            // ---- Query ----
+            const params = new URLSearchParams(window.location.search);
+            const queryText = params.get("searchText") || "";
+            if (!queryText) return;
+
+            // ---- Language ----
+            const pathParts = window.location.pathname.split("/");
+            const locale = pathParts[1] || "en-US";
+            const language = locale.split("-")[0].toLowerCase();
+
+            // ---- Response Time ----
+            const navTiming = performance.getEntriesByType("navigation")[0];
+            const responseTime = navTiming
+                ? Math.round(navTiming.responseEnd - navTiming.requestStart)
+                : 0;
+
+            // ---- Anonymous ----
+            function getCoveoClientId() {
+                const match = document.cookie.match(/_coveo_ua=([^;]+)/);
+                return match ? match[1] : "anon_unknown";
+            }
+
+            const clientId = getCoveoClientId();
+            const isAnonymous = clientId.startsWith("anon_");
+
             console.log("SEARCH TOTAL DETECTED:", total);
+
+            console.log("SEARCH EVENT SENT", {
+                queryText,
+                total,
+                responseTime,
+                language,
+                isAnonymous
+            });
 
             if (typeof coveoua === "function") {
                 coveoua('send', 'event', 'Search', 'SearchPageLoad', {
