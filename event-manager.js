@@ -8,11 +8,18 @@
         O = o.getElementsByTagName(v)[0]; O.parentNode.insertBefore(u, O);
     })(window, document, 'script', 'https://static.cloud.coveo.com/coveo.analytics.js/2/coveoua.js');
 
+    const pathParts = window.location.pathname.split("/");
+    const locale = pathParts[1]?.toLowerCase().replace("-", "_");
+    const language = locale.split("_")[0];
+
+    const environment = detectEnvironment();
+    const searchHub = `ds_${locale}_myhl_search_${environment}`;
+
     // Global fields
-    coveoua('set', 'language', 'en');
-    coveoua('set', 'currency', 'USD');
-    coveoua('set', 'trackingId', 'ds_en_us_myhl_search_qa01');
-    coveoua('set', 'searchHub', 'ds_en_us_myhl_search_qa01');
+    coveoua('set', 'language', language);
+    coveoua('set', 'currencyCode', detectCurrencyFromSymbol());
+    coveoua('set', 'trackingId', searchHub);
+    coveoua('set', 'searchHub', searchHub);
 
     // Init
     coveoua(
@@ -21,13 +28,7 @@
         ('https://jayakrishnansconsultantherbalifecomneighbouringturymtx1wo4.analytics.org.coveo.com')
     );
 
-    const pathParts = window.location.pathname.split("/");
-    const locale = pathParts[1]?.toLowerCase().replace("-", "_") || "en_us";
-    const language = locale.split("_")[0];
-
-    const environment = detectEnvironment();
-
-    const searchHub = `ds_${locale}_myhl_search_${environment}`;
+    
 
     const params = new URLSearchParams(window.location.search);
     const queryText = params.get("searchText") || "";
@@ -55,6 +56,30 @@
 
         return "unknown";
     }
+
+    function detectCurrencyFromSymbol() {
+
+        const symbol = document.querySelector(".price-symbol-left")?.innerText?.trim();
+        if (!symbol) return "";
+
+        const currencies = Intl.supportedValuesOf('currency');
+
+        for (const currency of currencies) {
+            const parts = new Intl.NumberFormat('en', {
+                style: 'currency',
+                currency
+            }).formatToParts(1);
+
+            const currencySymbol = parts.find(p => p.type === 'currency')?.value;
+
+            if (currencySymbol === symbol) {
+                return currency;
+            }
+        }
+
+        return "";
+    }
+
 
     document.addEventListener("DOMContentLoaded", function(){
 
