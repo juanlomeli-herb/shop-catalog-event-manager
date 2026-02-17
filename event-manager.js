@@ -1,3 +1,5 @@
+console.log("EVENT MANAGER LOADED");
+
 (function () {
 
     var root = document.querySelector("#subcategory");
