@@ -177,20 +177,19 @@
                 context_language: language
             });
 
-            coveoua('set', 'currencyCode', 'USD');
+            coveoua('set', 'currencyCode', currencyCode);
 
-            // ---- Enhanced Ecommerce ----
             coveoua('ec:addProduct', {
                 id: sku,
                 name: name,
-                category: "products",
+                category: "Products",
                 price: price,
                 quantity: quantity
             });
 
-            coveoua('ec:setAction', 'add', {
-                list: 'Products'
-            });
+            coveoua('ec:setAction', 'add');
+
+            coveoua('send', 'event');
 
         }, true);
 
