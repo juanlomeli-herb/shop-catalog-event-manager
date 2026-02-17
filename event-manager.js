@@ -264,39 +264,59 @@
 
     function sendProductViewEvent() {
 
-        const name = document.querySelector(".product-details .title, .name")?.innerText?.trim() || "";
-        const sku = document.querySelector(".sku span, .sku")?.innerText?.replace("SKU ", "").trim() || "";
+        const priceSelector = "[data-bind*='YourPrice']";
+        const nameSelector = "h2.title";
+        const skuSelector = ".sku span, .sku";
 
-        const priceElement = document.querySelector("[data-bind*='YourPrice']");
-        const price = priceElement
-            ? parseFloat(priceElement.innerText.replace(",", "").trim())
-            : 0;
+        const observer = new MutationObserver(() => {
 
-        if (!sku) return;
+            const priceElement = document.querySelector(priceSelector);
+            const nameElement = document.querySelector(nameSelector);
 
-        console.log("PRODUCT VIEW EVENT", {
-            name,
-            sku,
-            price
+            if (!priceElement || !nameElement) return;
+
+            const priceText = priceElement.innerText.trim();
+            if (!priceText) return; // aún no está pintado
+
+            const name = nameElement.innerText.trim();
+            const sku = document
+                .querySelector(skuSelector)
+                ?.innerText
+                ?.replace("SKU ", "")
+                ?.trim() || "";
+
+            const price = parseFloat(priceText.replace(",", ""));
+
+            if (!sku || !price) return;
+
+            observer.disconnect(); // 🔥 importante, evitar doble envío
+
+            console.log("PRODUCT VIEW EVENT", { name, sku, price });
+
+            coveoua('set', 'custom', {
+                context_website: searchHub,
+                originLevel1: searchHub,
+                context_language: language
+            });
+
+            coveoua('ec:addProduct', {
+                id: sku,
+                name: name,
+                category: "Products",
+                price: price
+            });
+
+            coveoua('ec:setAction', 'detail');
+            coveoua('send', 'event');
+
         });
 
-        coveoua('set', 'custom', {
-            context_website: searchHub,
-            originLevel1: searchHub,
-            context_language: language
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
         });
-
-        coveoua('ec:addProduct', {
-            id: sku,
-            name: name,
-            category: "Products",
-            price: price
-        });
-
-        coveoua('ec:setAction', 'detail');
-        coveoua('send', 'event');
-
     }
+
 
     function initProductAddToCart() {
 
@@ -305,7 +325,7 @@
             const btn = e.target.closest(".btn-add-cart-large, .btn-add-cart");
             if (!btn) return;
 
-            const name = document.querySelector(".product-details .title, .name")?.innerText?.trim() || "";
+            const name = document.querySelector("h2.title")?.innerText?.trim() || "";
             const sku = document.querySelector(".sku span, .sku")?.innerText?.replace("SKU ", "").trim() || "";
 
             const priceElement = document.querySelector("[data-bind*='YourPrice']");
