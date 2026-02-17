@@ -1,5 +1,26 @@
 (function(){
 
+    (function (c, o, v, e, O, u, a) {
+        a = 'coveoua';
+        c[a] = c[a] || function () { (c[a].q = c[a].q || []).push(arguments) };
+        c[a].t = Date.now();
+        u = o.createElement(v); u.async = 1; u.src = e;
+        O = o.getElementsByTagName(v)[0]; O.parentNode.insertBefore(u, O);
+    })(window, document, 'script', 'https://static.cloud.coveo.com/coveo.analytics.js/2/coveoua.js');
+
+    // Global fields
+    coveoua('set', 'language', 'en');
+    coveoua('set', 'currency', 'USD');
+    coveoua('set', 'trackingId', 'ds_en_us_myhl_search_qa01');
+    coveoua('set', 'searchHub', 'ds_en_us_myhl_search_qa01');
+
+    // Init
+    coveoua(
+        'init',
+        "xx002baef0-c992-4354-8a11-b4af0aea92f8",
+        ('https://jayakrishnansconsultantherbalifecomneighbouringturymtx1wo4.analytics.org.coveo.com')
+    );
+
     document.addEventListener("DOMContentLoaded", function(){
 
         console.log("DOM READY");
@@ -105,14 +126,29 @@
                 isAnonymous
             });
 
-            if (typeof coveoua === "function") {
-                coveoua('send', 'event', 'Search', 'SearchPageLoad', {
-                    totalResults: total,
-                    originLevel1: "ds_en_us_myhl_search_qa01",
-                    originLevel2: "search",
-                    originLevel3: window.location.href
-                });
-            }
+
+
+            // ---- Context ----
+            coveoua('set', 'custom', {
+                context_website: "ds_en_us_myhl_search_qa01",
+                context_language: language
+            });
+
+            // ---- SEND SEARCH ----
+            coveoua('send', 'search', {
+                actionCause: 'searchboxSubmit',
+                queryText: queryText,
+                numberOfResults: total,
+                responseTime: responseTime,
+                searchQueryUid: searchQueryUid,
+                language: language,
+
+                originLevel1: "ds_en_us_myhl_search_qa01",
+                originLevel2: 'Products',
+                originLevel3: window.location.href,
+
+                anonymous: isAnonymous
+            });
 
         });
 
