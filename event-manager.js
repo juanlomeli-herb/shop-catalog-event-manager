@@ -1,5 +1,8 @@
-(function(){
+(function () {
 
+    /* ================================
+       LOAD COVEO UA
+    ================================= */
     (function (c, o, v, e, O, u, a) {
         a = 'coveoua';
         c[a] = c[a] || function () { (c[a].q = c[a].q || []).push(arguments) };
@@ -8,59 +11,24 @@
         O = o.getElementsByTagName(v)[0]; O.parentNode.insertBefore(u, O);
     })(window, document, 'script', 'https://static.cloud.coveo.com/coveo.analytics.js/2/coveoua.js');
 
-    const pathParts = window.location.pathname.split("/");
-    const locale = pathParts[1]?.toLowerCase().replace("-", "_");
-    const language = locale.split("_")[0];
 
-    const environment = detectEnvironment();
-    const searchHub = `ds_${locale}_myhl_search_${environment}`;
-
-    // Global fields
-    coveoua('set', 'language', language);
-    coveoua('set', 'currencyCode', detectCurrencyFromSymbol());
-    coveoua('set', 'trackingId', searchHub);
-    coveoua('set', 'searchHub', searchHub);
-
-    // Init
-    coveoua(
-        'init',
-        "xx002baef0-c992-4354-8a11-b4af0aea92f8",
-        ('https://jayakrishnansconsultantherbalifecomneighbouringturymtx1wo4.analytics.org.coveo.com')
-    );
-
-    
-
-    const params = new URLSearchParams(window.location.search);
-    const queryText = params.get("searchText") || "";
-
-    const searchQueryUid = crypto.randomUUID();
-    window._searchQueryUid = searchQueryUid;
-
-    function isAnonymousUser() {
-        return !document.cookie
-            .split("; ")
-            .some(cookie => cookie.startsWith("coveo_visitorId="));
-    }
-
-    const isAnonymous = isAnonymousUser();
+    /* ================================
+       GLOBAL CONFIG
+    ================================= */
 
     function detectEnvironment() {
-
         const host = window.location.hostname.toLowerCase();
-
         if (host.includes("localhost")) return "local";
         if (host.includes("q")) return "qa01";
         if (host.includes("u")) return "uat";
         if (host.includes("s")) return "stage";
         if (host.includes("p")) return "prod";
-
         return "unknown";
     }
 
     function detectCurrencyFromSymbol() {
-
         const symbol = document.querySelector(".price-symbol-left")?.innerText?.trim();
-        if (!symbol) return "";
+        if (!symbol) return "USD";
 
         const currencies = Intl.supportedValuesOf('currency');
 
@@ -77,107 +45,193 @@
             }
         }
 
-        return "";
+        return "USD";
     }
 
+    function isAnonymousUser() {
+        return !document.cookie
+            .split("; ")
+            .some(cookie => cookie.startsWith("coveo_visitorId="));
+    }
 
-    document.addEventListener("DOMContentLoaded", function(){
+    /* ================================
+       DERIVED GLOBALS
+    ================================= */
 
-        console.log("DOM READY");
+    const pathParts = window.location.pathname.split("/");
+    const locale = pathParts[1]?.toLowerCase().replace("-", "_") || "";
+    const language = locale.split("_")[0];
+    const environment = detectEnvironment();
+    const searchHub = `ds_${locale}_myhl_search_${environment}`;
+    const currencyCode = detectCurrencyFromSymbol();
+    const isAnonymous = isAnonymousUser();
+    const searchQueryUid = crypto.randomUUID();
+
+    window._searchQueryUid = searchQueryUid;
+
+    /* ================================
+       INIT COVEO
+    ================================= */
+
+    coveoua('set', 'language', language);
+    coveoua('set', 'currencyCode', currencyCode);
+    coveoua('set', 'trackingId', searchHub);
+    coveoua('set', 'searchHub', searchHub);
+
+    coveoua(
+        'init',
+        "xx002baef0-c992-4354-8a11-b4af0aea92f8",
+        "https://jayakrishnansconsultantherbalifecomneighbouringturymtx1wo4.analytics.org.coveo.com"
+    );
+
+    /* ================================
+       PAGE DETECTION
+    ================================= */
+
+    document.addEventListener("DOMContentLoaded", function () {
+
+        const isSearchPage = !!document.querySelector("#subcategory");
+        const isProductPage = !!document.querySelector("#product");
+
+        if (isSearchPage) {
+            initSearchPage();
+        }
+
+        if (isProductPage) {
+            initProductPage();
+        }
+
+    });
+
+
+    /* ================================
+       SEARCH PAGE MODULE
+    ================================= */
+
+    function initSearchPage() {
+
+        console.log("Initializing Search Page Analytics");
+
+        initSearchEvent();
+        initSearchClickEvent();
+        initSearchAddToCart();
+
+    }
+
+    function initSearchEvent() {
+
+        const totalSpan = document.querySelector(
+            ".title-arrow span[data-bind*='totalProducts']"
+        );
+
+        if (!totalSpan) return;
+
+        const params = new URLSearchParams(window.location.search);
+        const queryText = params.get("searchText");
+
+        if (!queryText) return;
+
+        let searchSent = false;
         const searchStartTime = performance.now();
 
-        // ---- CLICK LISTENER ----
-        document.addEventListener("click", function(e){
+        const observer = new MutationObserver(function () {
 
-            var link = e.target.closest("a.product-info");
+            const total = parseInt(totalSpan.textContent.trim(), 10);
+            if (!total || searchSent) return;
+
+            searchSent = true;
+
+            const responseTime = Math.round(performance.now() - searchStartTime);
+
+            coveoua('set', 'custom', {
+                context_website: searchHub,
+                context_language: language
+            });
+
+            coveoua('send', 'search', {
+                actionCause: 'searchboxSubmit',
+                queryText: queryText,
+                numberOfResults: total,
+                responseTime: responseTime,
+                searchQueryUid: searchQueryUid,
+                language: language,
+                originLevel1: searchHub,
+                originLevel2: 'Products',
+                originLevel3: window.location.href,
+                anonymous: isAnonymous
+            });
+
+            console.log("Search event sent");
+
+        });
+
+        observer.observe(totalSpan, { childList: true });
+    }
+
+    function initSearchClickEvent() {
+
+        document.addEventListener("click", function (e) {
+
+            const link = e.target.closest("a.product-info");
             if (!link) return;
 
-            var item = link.closest(".item");
+            const item = link.closest(".item");
             if (!item) return;
-
-            if (typeof coveoua !== "function") return;
 
             const name = item.querySelector(".name")?.innerText?.trim() || "";
             const sku = item.querySelector(".sku")?.innerText?.replace("SKU ", "").trim() || "";
-            const documentUrl = link.href;
 
             const allItems = Array.from(document.querySelectorAll(".product-list .item"));
             const position = allItems.indexOf(item) + 1;
 
-            console.log("CLICK ANALYTICS PAYLOAD", {
-                name,
-                sku,
-                position,
-                searchQueryUid
-            });
-
             coveoua('send', 'click', {
                 actionCause: 'documentOpen',
-
                 documentPosition: position,
                 documentTitle: name,
-                documentUrl: documentUrl,
-
+                documentUrl: link.href,
                 searchQueryUid: searchQueryUid,
-
                 sourceName: 'Products',
                 language: language,
-
                 originLevel1: searchHub,
                 originLevel2: 'Products',
                 originLevel3: window.location.href,
-
                 anonymous: isAnonymous,
-
                 customData: {
                     contentIDKey: 'sku',
                     contentIDValue: sku
                 }
             });
 
-
+            console.log("Product click sent");
 
         }, true);
+    }
 
-        // Cart
-        document.addEventListener("click", function(e){
+    function initSearchAddToCart() {
 
-            var btn = e.target.closest(".btn-add-cart");
+        document.addEventListener("click", function (e) {
+
+            const btn = e.target.closest(".btn-add-cart");
             if (!btn) return;
 
-            var item = btn.closest(".item");
+            const item = btn.closest(".item");
             if (!item) return;
-
-            if (typeof coveoua !== "function") return;
 
             const name = item.querySelector(".name")?.innerText?.trim() || "";
             const sku = item.querySelector(".sku")?.innerText?.replace("SKU ", "").trim() || "";
 
-            // Precio visible
             const priceElement = item.querySelector("[data-bind*='YourPrice']");
             const price = priceElement
                 ? parseFloat(priceElement.innerText.replace(",", "").trim())
                 : 0;
 
-            // Cantidad seleccionada
             const qtyInput = item.querySelector("input.increment");
             const quantity = qtyInput ? parseInt(qtyInput.value, 10) || 1 : 1;
 
-            console.log("ADD TO CART ANALYTICS", {
-                name,
-                sku,
-                price,
-                quantity,
-                searchQueryUid
-            });
-
-            // ---- Context ----
             coveoua('set', 'custom', {
                 context_website: searchHub,
                 context_language: language
             });
-
-            //coveoua('set', 'currencyCode', currencyCode);
 
             coveoua('ec:addProduct', {
                 id: sku,
@@ -188,79 +242,52 @@
             });
 
             coveoua('ec:setAction', 'add');
-
             coveoua('send', 'event');
 
+            console.log("Add to cart sent");
+
         }, true);
+    }
 
 
-        // ---- OBSERVER ----
-        let searchSent = false;
+    /* ================================
+       PRODUCT DETAIL MODULE
+    ================================= */
 
-        const totalSpan = document.querySelector(
-            ".title-arrow span[data-bind*='totalProducts']"
-        );
+    function initProductPage() {
 
-        if (!totalSpan) return;
+        console.log("Initializing Product Detail Analytics");
 
-        let lastValue = null;
+        document.addEventListener("click", function (e) {
 
-        const observer = new MutationObserver(function(){
+            const btn = e.target.closest(".btn-add-cart-large");
+            if (!btn) return;
 
-            const total = parseInt(totalSpan.textContent.trim(), 10);
+            const name = document.querySelector(".product-details .title")?.innerText?.trim() || "";
+            const sku = document.querySelector(".sku span")?.innerText?.trim() || "";
 
-            if (!total || total === lastValue) return;
+            const priceElement = document.querySelector("[data-bind*='YourPrice']");
+            const price = priceElement
+                ? parseFloat(priceElement.innerText.replace(",", "").trim())
+                : 0;
 
-            lastValue = total;
-            if (searchSent) return;
-            searchSent = true;
+            const qtyInput = document.querySelector("input.increment");
+            const quantity = qtyInput ? parseInt(qtyInput.value, 10) || 1 : 1;
 
-            if (typeof coveoua !== "function") return;
-            if (!queryText) return;
-
-            const responseTime = Math.round(performance.now() - searchStartTime);
-
-            console.log("SEARCH TOTAL DETECTED:", total);
-
-            console.log("SEARCH EVENT SENT", {
-                queryText,
-                total,
-                responseTime,
-                language,
-                isAnonymous
+            coveoua('ec:addProduct', {
+                id: sku,
+                name: name,
+                category: "Products",
+                price: price,
+                quantity: quantity
             });
 
-            console.log("ENVIRONMENT DETECTED:", `ds_${locale}_myhl_search_${environment}`);
+            coveoua('ec:setAction', 'add');
+            coveoua('send', 'event');
 
-            // ---- Context ----
-            coveoua('set', 'custom', {
-                context_website: searchHub,
-                context_language: language
-            });
+            console.log("Product detail add to cart sent");
 
-            // ---- SEND SEARCH ----
-            coveoua('send', 'search', {
-                actionCause: 'searchboxSubmit',
-                queryText: queryText,
-                numberOfResults: total,
-                responseTime: responseTime,
-                searchQueryUid: searchQueryUid,
-                language: language,
-
-                originLevel1: searchHub,
-                originLevel2: 'Products',
-                originLevel3: window.location.href,
-
-                anonymous: isAnonymous
-            });
-
-        });
-
-        observer.observe(totalSpan, {
-            childList: true
-        });
-
-
-    });
+        }, true);
+    }
 
 })();
