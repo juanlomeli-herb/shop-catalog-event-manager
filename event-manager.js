@@ -21,6 +21,28 @@
         ('https://jayakrishnansconsultantherbalifecomneighbouringturymtx1wo4.analytics.org.coveo.com')
     );
 
+    const pathParts = window.location.pathname.split("/");
+    const locale = pathParts[1]?.toLowerCase().replace("-", "_") || "en_us";
+    const language = locale.split("_")[0];
+
+    const environment = detectEnvironment();
+
+    const searchHub = `ds_${locale}_myhl_search_${environment}`;
+
+    const params = new URLSearchParams(window.location.search);
+    const queryText = params.get("searchText") || "";
+
+    const searchQueryUid = crypto.randomUUID();
+    window._searchQueryUid = searchQueryUid;
+
+    function isAnonymousUser() {
+        return !document.cookie
+            .split("; ")
+            .some(cookie => cookie.startsWith("coveo_visitorId="));
+    }
+
+    const isAnonymous = isAnonymousUser();
+
     function detectEnvironment() {
 
         const host = window.location.hostname.toLowerCase();
@@ -90,8 +112,6 @@
         if (!totalSpan) return;
 
         let lastValue = null;
-        let searchQueryUid = crypto.randomUUID();
-        window._searchQueryUid = searchQueryUid;
 
         const observer = new MutationObserver(function(){
 
@@ -103,31 +123,10 @@
             if (searchSent) return;
             searchSent = true;
 
-            //if (typeof coveoua !== "function") return;
-
-            // ---- Query ----
-            const params = new URLSearchParams(window.location.search);
-            const queryText = params.get("searchText") || "";
+            if (typeof coveoua !== "function") return;
             if (!queryText) return;
 
-            // ---- Language ----
-            const pathParts = window.location.pathname.split("/");
-            const locale = pathParts[1].toLowerCase().replace("-", "_");
-            const language = locale.split("_")[0];
-
-            // ---- Response Time ----
             const responseTime = Math.round(performance.now() - searchStartTime);
-
-            // ---- Anonymous ----
-            function isAnonymousUser() {
-                return !document.cookie
-                    .split("; ")
-                    .some(cookie => cookie.startsWith("coveo_visitorId="));
-            }
-
-            const isAnonymous = isAnonymousUser();
-
-            const environment = detectEnvironment();
 
             console.log("SEARCH TOTAL DETECTED:", total);
 
@@ -143,7 +142,7 @@
 
             // ---- Context ----
             coveoua('set', 'custom', {
-                context_website: `ds_${locale.toLowerCase()}_myhl_search_${environment}`,
+                context_website: searchHub,
                 context_language: language
             });
 
@@ -156,7 +155,7 @@
                 searchQueryUid: searchQueryUid,
                 language: language,
 
-                originLevel1: `ds_${locale.toLowerCase()}_myhl_search_${environment}`,
+                originLevel1: searchHub,
                 originLevel2: 'Products',
                 originLevel3: window.location.href,
 
