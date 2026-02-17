@@ -37,6 +37,7 @@
     document.addEventListener("DOMContentLoaded", function(){
 
         console.log("DOM READY");
+        const searchStartTime = performance.now();
 
         // ---- CLICK LISTENER ----
         document.addEventListener("click", function(e){
@@ -115,8 +116,7 @@
             const language = locale.split("_")[0];
 
             // ---- Response Time ----
-            const navTiming = performance.getEntriesByType("navigation")[0];
-            const responseTime = Math.round(performance.now());
+            const responseTime = Math.round(performance.now() - searchStartTime);
 
             // ---- Anonymous ----
             function isAnonymousUser() {
