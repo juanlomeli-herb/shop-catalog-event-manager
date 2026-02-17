@@ -1,4 +1,3 @@
-<script>
 (function () {
 
     var root = document.querySelector("#subcategory");
@@ -99,4 +98,3 @@
     });
 
 })();
-</script>
