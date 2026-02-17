@@ -116,18 +116,16 @@
 
             // ---- Response Time ----
             const navTiming = performance.getEntriesByType("navigation")[0];
-            const responseTime = navTiming
-                ? Math.round(navTiming.responseEnd - navTiming.requestStart)
-                : 0;
+            const responseTime = Math.round(performance.now());
 
             // ---- Anonymous ----
-            function getCoveoClientId() {
-                const match = document.cookie.match(/coveo=([^;]+)/);
-                return match ? match[1] : "anon_unknown";
+            function isAnonymousUser() {
+                return !document.cookie
+                    .split("; ")
+                    .some(cookie => cookie.startsWith("coveo_visitorId="));
             }
 
-            const clientId = getCoveoClientId();
-            const isAnonymous = clientId.startsWith("anon_");
+            const isAnonymous = isAnonymousUser();
 
             const environment = detectEnvironment();
 
