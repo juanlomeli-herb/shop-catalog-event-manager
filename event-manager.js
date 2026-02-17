@@ -21,6 +21,19 @@
         ('https://jayakrishnansconsultantherbalifecomneighbouringturymtx1wo4.analytics.org.coveo.com')
     );
 
+    function detectEnvironment() {
+
+        const host = window.location.hostname.toLowerCase();
+
+        if (host.includes("localhost")) return "local";
+        if (host.includes("q")) return "qa01";
+        if (host.includes("u")) return "uat";
+        if (host.includes("s")) return "stage";
+        if (host.includes("p")) return "prod";
+
+        return "unknown";
+    }
+
     document.addEventListener("DOMContentLoaded", function(){
 
         console.log("DOM READY");
@@ -116,6 +129,8 @@
             const clientId = getCoveoClientId();
             const isAnonymous = clientId.startsWith("anon_");
 
+            const environment = detectEnvironment();
+
             console.log("SEARCH TOTAL DETECTED:", total);
 
             console.log("SEARCH EVENT SENT", {
@@ -126,11 +141,11 @@
                 isAnonymous
             });
 
-
+            console.log("ENVIRONMENT DETECTED:", `ds_${locale.toLowerCase()}_myhl_search_${environment}`);
 
             // ---- Context ----
             coveoua('set', 'custom', {
-                context_website: "ds_en_us_myhl_search_qa01",
+                context_website: `ds_${locale.toLowerCase()}_myhl_search_${environment}`,
                 context_language: language
             });
 
@@ -143,7 +158,7 @@
                 searchQueryUid: searchQueryUid,
                 language: language,
 
-                originLevel1: "ds_en_us_myhl_search_qa01",
+                originLevel1: `ds_${locale.toLowerCase()}_myhl_search_${environment}`,
                 originLevel2: 'Products',
                 originLevel3: window.location.href,
 
