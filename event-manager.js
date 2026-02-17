@@ -45,39 +45,81 @@
         }, true);
 
 
-        // ---- OBSERVER ----
-        let searchSent = false;
-
         const totalSpan = document.querySelector(
             ".title-arrow span[data-bind*='totalProducts']"
         );
 
-        if (!totalSpan) {
-            console.log("totalProducts span not found");
-            return;
-        }
+        if (!totalSpan) return;
 
         let lastValue = null;
+        let searchSent = false;
+        let searchQueryUid = crypto.randomUUID();
+        window._searchQueryUid = searchQueryUid;
 
         const observer = new MutationObserver(function(){
 
             const total = parseInt(totalSpan.textContent.trim(), 10);
-
-            if (!total || total === lastValue) return;
+            if (isNaN(total) || total === lastValue) return;
 
             lastValue = total;
+            if (searchSent) return;
             searchSent = true;
 
-            console.log("SEARCH TOTAL DETECTED:", total);
+            if (typeof coveoua !== "function") return;
 
-            if (typeof coveoua === "function") {
-                coveoua('send', 'event', 'Search', 'SearchPageLoad', {
-                    totalResults: total,
-                    originLevel1: "ds_en_us_myhl_search_qa01",
-                    originLevel2: "search",
-                    originLevel3: window.location.href
-                });
+            // ---- Query ----
+            const params = new URLSearchParams(window.location.search);
+            const queryText = params.get("searchText") || "";
+            if (!queryText) return;
+
+            // ---- Language ----
+            const pathParts = window.location.pathname.split("/");
+            const locale = pathParts[1] || "en-US";
+            const language = locale.split("-")[0].toLowerCase();
+
+            // ---- Response Time ----
+            const navTiming = performance.getEntriesByType("navigation")[0];
+            const responseTime = navTiming
+                ? Math.round(navTiming.responseEnd - navTiming.requestStart)
+                : 0;
+
+            // ---- Anonymous ----
+            function getCoveoClientId() {
+                const match = document.cookie.match(/_coveo_ua=([^;]+)/);
+                return match ? match[1] : "anon_unknown";
             }
+
+            const clientId = getCoveoClientId();
+            const isAnonymous = clientId.startsWith("anon_");
+
+            // ---- Context ----
+            coveoua('set', 'custom', {
+                context_website: "ds_en_us_myhl_search_qa01",
+                context_language: language
+            });
+
+            // ---- SEND SEARCH ----
+            coveoua('send', 'search', {
+                actionCause: 'searchboxSubmit',
+                queryText: queryText,
+                numberOfResults: total,
+                responseTime: responseTime,
+                searchQueryUid: searchQueryUid,
+                language: language,
+
+                originLevel1: "ds_en_us_myhl_search_qa01",
+                originLevel2: 'Products',
+                originLevel3: window.location.href,
+
+                anonymous: isAnonymous
+            });
+
+            console.log("SEARCH EVENT SENT", {
+                queryText,
+                total,
+                responseTime,
+                language
+            });
 
         });
 
