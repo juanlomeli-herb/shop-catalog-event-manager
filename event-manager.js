@@ -19,7 +19,7 @@
     function detectEnvironment() {
         const host = window.location.hostname.toLowerCase();
         if (host.includes("localhost")) return "local";
-        if (host.includes("q")) return "qa01";
+        if (host.includes("zus2q1")) return "qa01";
         if (host.includes("u")) return "uat";
         if (host.includes("s")) return "stage";
         if (host.includes("p")) return "prod";
@@ -48,12 +48,6 @@
         return "USD";
     }
 
-    function isAnonymousUser() {
-        return !document.cookie
-            .split("; ")
-            .some(cookie => cookie.startsWith("coveo_visitorId="));
-    }
-
     /* ================================
        DERIVED GLOBALS
     ================================= */
@@ -64,10 +58,102 @@
     const environment = detectEnvironment();
     const searchHub = `ds_${locale}_myhl_search_${environment}`;
     const currencyCode = detectCurrencyFromSymbol();
-    const isAnonymous = isAnonymousUser();
+    const isAnonymous = false;
     const searchQueryUid = crypto.randomUUID();
+    let userId = null;
 
     window._searchQueryUid = searchQueryUid;
+
+    /* ================================
+    CLICK PROTECTION
+    ================================ */
+
+    const CLICK_LOCK_MS = 800;
+    const clickLocks = new Map();
+    let productViewSent = false;
+
+
+    function isLocked(key) {
+        const now = Date.now();
+
+        if (clickLocks.has(key)) {
+            const last = clickLocks.get(key);
+            if (now - last < CLICK_LOCK_MS) {
+                return true;
+            }
+        }
+
+        clickLocks.set(key, now);
+        return false;
+    }
+
+    let cachedUserId = null;
+    let userIdPromise = null;
+
+    function getHerbalifeGuid() {
+        const match = document.cookie
+            .split('; ')
+            .find(row => row.startsWith('HerbalifeUser='));
+
+        if (!match) return null;
+
+        const value = decodeURIComponent(match.split('=')[1]);
+        const params = new URLSearchParams(value);
+
+        return params.get('GUID');
+    }
+
+    async function ensureUserId() {
+
+        // Si ya lo tenemos, no recalculamos
+        if (cachedUserId) return cachedUserId;
+
+        // Si ya hay una promesa en curso, la reutilizamos
+        if (userIdPromise) return userIdPromise;
+
+        userIdPromise = new Promise(async (resolve) => {
+
+            let guid = null;
+            let attempts = 0;
+
+            while (!guid && attempts < 20) {
+                guid = getHerbalifeGuid();
+                if (guid) break;
+
+                await new Promise(r => setTimeout(r, 100));
+                attempts++;
+            }
+
+            if (!guid) {
+                console.log("[COVEO UA] No GUID → anonymous");
+                resolve(null);
+                return;
+            }
+
+            const hashed = await sha256Hash(guid);
+
+            cachedUserId = hashed;
+
+            coveoua('set', 'userId', hashed);
+
+            console.log("[COVEO UA] userId ready");
+
+            resolve(hashed);
+        });
+
+        return userIdPromise;
+    }
+
+    async function sha256Hash(value) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(value);
+        const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray
+            .map(b => b.toString(16).padStart(2, "0"))
+            .join("");
+    }
+
 
     /* ================================
        INIT COVEO
@@ -134,7 +220,7 @@
         let searchSent = false;
         const searchStartTime = performance.now();
 
-        const observer = new MutationObserver(function () {
+        const observer = new MutationObserver(async function () {
 
             const total = parseInt(totalSpan.textContent.trim(), 10);
             if (!total || searchSent) return;
@@ -142,6 +228,9 @@
             searchSent = true;
 
             const responseTime = Math.round(performance.now() - searchStartTime);
+
+            await ensureUserId();
+
 
             coveoua('set', 'custom', {
                 context_website: searchHub,
@@ -170,7 +259,7 @@
 
     function initSearchClickEvent() {
 
-        document.addEventListener("click", function (e) {
+        document.addEventListener("click", async function (e) {
 
             const link = e.target.closest("a.product-info");
             if (!link) return;
@@ -183,6 +272,16 @@
 
             const allItems = Array.from(document.querySelectorAll(".product-list .item"));
             const position = allItems.indexOf(item) + 1;
+
+            if (link.dataset.coveoClickSent === "true") {
+                console.log("Click already tracked for this element");
+                return;
+            }
+
+            link.dataset.coveoClickSent = "true";
+
+            await ensureUserId();
+
 
             coveoua('send', 'click', {
                 actionCause: 'documentOpen',
@@ -209,7 +308,7 @@
 
     function initSearchAddToCart() {
 
-        document.addEventListener("click", function (e) {
+        document.addEventListener("click", async function (e) {
 
             const btn = e.target.closest(".btn-add-cart");
             if (!btn) return;
@@ -227,6 +326,13 @@
 
             const qtyInput = item.querySelector("input.increment");
             const quantity = qtyInput ? parseInt(qtyInput.value, 10) || 1 : 1;
+
+            if (isLocked("add_" + sku)) {
+                console.log("Blocked duplicate addToCart:", sku);
+                return;
+            }
+
+            await ensureUserId();
 
             coveoua('set', 'custom', {
                 context_website: searchHub,
@@ -268,7 +374,7 @@
         const nameSelector = "h2.title";
         const skuSelector = ".sku span, .sku";
 
-        const observer = new MutationObserver(() => {
+        const observer = new MutationObserver(async () => {
 
             const priceElement = document.querySelector(priceSelector);
             const nameElement = document.querySelector(nameSelector);
@@ -289,7 +395,13 @@
 
             if (!sku || !price) return;
 
+            if (productViewSent) return;
+
             observer.disconnect();
+
+            productViewSent = true;
+
+            await ensureUserId();
 
             coveoua('set', 'custom', {
                 context_website: searchHub,
@@ -320,7 +432,7 @@
 
     function initProductAddToCart() {
 
-        document.addEventListener("click", function (e) {
+        document.addEventListener("click", async function (e) {
 
             const btn = e.target.closest(".btn-add-cart-large, .btn-add-cart");
             if (!btn) return;
@@ -336,6 +448,13 @@
             const qtyInput = document.querySelector("input.increment");
             const quantity = qtyInput ? parseInt(qtyInput.value, 10) || 1 : 1;
 
+            if (isLocked("add_" + sku)) {
+                console.log("Blocked duplicate detail addToCart:", sku);
+                return;
+            }
+
+            await ensureUserId();
+
             coveoua('ec:addProduct', {
                 id: sku,
                 name: name,
@@ -347,9 +466,11 @@
             coveoua('ec:setAction', 'add');
             coveoua('send', 'event');
 
+            console.log("Add to cart sent in detail page");
+
         }, true);
 
-        console.log("Add to cart sent in detail page");
+        
     }
 
 
