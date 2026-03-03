@@ -331,7 +331,7 @@
 
         if (isProductPage) {
             console.log("PDP detected");
-            productViewSent = false; // 🔥 reset
+            productViewSent = false;
             initProductPage();
         }
     }
@@ -342,9 +342,11 @@
         boot();
     }
 
-    // 🔥 detect navegación interna
     onUrlChange(() => {
         console.log("URL changed — reinitializing analytics");
+
+        productViewSent = false;
+        searchInitialized = false;
         boot();
     });
 
@@ -437,6 +439,13 @@
     }
 
     function initSearchPage() {
+
+        if (searchInitialized) {
+            console.log("Search already initialized — skipping");
+            return;
+        }
+
+        searchInitialized = true;
 
         const context = getSearchContext();
         window._searchContext = context;
