@@ -344,9 +344,6 @@
 
     onUrlChange(() => {
         console.log("URL changed — reinitializing analytics");
-
-        productViewSent = false;
-        searchInitialized = false;
         boot();
     });
 
