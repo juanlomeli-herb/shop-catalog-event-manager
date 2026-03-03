@@ -215,6 +215,7 @@
     const CLICK_LOCK_MS = 800;
     const clickLocks = new Map();
     let productViewSent = false;
+    let searchInitialized = false;
 
 
     function isLocked(key) {
@@ -437,13 +438,6 @@
 
     function initSearchPage() {
 
-        if (searchInitialized) {
-            console.log("Search already initialized — skipping");
-            return;
-        }
-
-        searchInitialized = true;
-
         const context = getSearchContext();
         window._searchContext = context;
 
@@ -456,6 +450,13 @@
     }
 
     function initSearchEvent(queryText) {
+
+        if (searchInitialized) {
+            console.log("Search already initialized — skipping");
+            return;
+        }
+
+        searchInitialized = true;
 
         const totalSpan = document.querySelector(
             ".title-arrow span[data-bind*='totalProducts']"
